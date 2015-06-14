@@ -62,14 +62,18 @@ class QuesfollowerSpider(scrapy.Spider):
         dbPrime = 97
         self.questionIdList = redis0.hvals('questionIndex')
 
+        for questionId in self.questionIdList:
+            self.questionFollowerCountList.append(redis2.lindex(str(questionId),4))
+
         # dbPrime = 97
         # totalCount = int(client_2.get('totalCount'))
         # for questionIndex in range(0,totalCount):
         #     self.questionIdSet.add(int(client_2.get(str(questionIndex))[0]))
-        p2 = redis2.pipeline()
-        for questionId in self.questionIdList:
-            p2.lindex(str(questionId),4)
-        self.questionFollowerCountList = p2.execute()
+        # p2 = redis2.pipeline()
+        # for questionId in self.questionIdList:
+        #     p2.lindex(str(questionId),4)
+        # self.questionFollowerCountList = p2.execute()
+
 
             # if questionInfo:
             #     if int(questionInfo[4])>self.threhold:
