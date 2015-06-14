@@ -69,7 +69,7 @@ class QuesfollowerSpider(scrapy.Spider):
         # totalCount = int(client_2.get('totalCount'))
         # for questionIndex in range(0,totalCount):
         #     self.questionIdSet.add(int(client_2.get(str(questionIndex))[0]))
-        # p2 = redis2.pipeline()
+        # p2 = redis2.pipeline()    #貌似这样占用的内存太多了
         # for questionId in self.questionIdList:
         #     p2.lindex(str(questionId),4)
         # self.questionFollowerCountList = p2.execute()
@@ -155,7 +155,7 @@ class QuesfollowerSpider(scrapy.Spider):
     #
     #         else:
 
-            inspect_response(response,self)
+           # inspect_response(response,self)
             data = json.loads(response.body)
             userCountRet = data['msg'][0]
             if userCountRet:
