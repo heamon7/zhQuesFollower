@@ -37,6 +37,7 @@ class QuesfollowerSpider(scrapy.Spider):
     questionInfoList = []
     quesIndex =0
     reqLimit =20
+    pipelineLimit = 100000
     threhold = 100
     handle_httpstatus_list = [401,429,500]
     #handle_httpstatus_list = [401,429,500]
@@ -75,10 +76,10 @@ class QuesfollowerSpider(scrapy.Spider):
         p2 = redis2.pipeline()
         for index ,questionId in enumerate(self.questionIdList):
             p2.lindex(str(questionId),4)
-            if index%10000 ==0:
+            if index%self.pipelineLimit ==0:
                 self.questionFollowerCountList.extend(p2.execute())
                 p2 = redis2.pipeline()
-                print "length of questionFollowerCountList: %s\n" %str(len(self.questionFollowerCountList))
+                # print "length of questionFollowerCountList: %s\n" %str(len(self.questionFollowerCountList))
 
 
 
@@ -135,7 +136,7 @@ class QuesfollowerSpider(scrapy.Spider):
 
             reqTimes = (self.questionFollowerCountList[index]+self.reqLimit-1)/self.reqLimit
             for index in reversed(range(reqTimes)):
-                print "request index: %s"  %str(index)
+                # print "request index: %s"  %str(index)
                 yield FormRequest(url =reqUrl,
                                           #headers = self.headers,
                                           metadata={'offset':self.reqLimit*(index +1)},
@@ -153,7 +154,7 @@ class QuesfollowerSpider(scrapy.Spider):
 
 
         if response.status != 200:
-            print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
+            # print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
             yield Request(response.url,callback=self.parsePage)
         else:
 
@@ -168,7 +169,7 @@ class QuesfollowerSpider(scrapy.Spider):
            # inspect_response(response,self)
             data = json.loads(response.body)
             userCountRet = data['msg'][0]
-            print "userCountRet: %s" %userCountRet
+            # print "userCountRet: %s" %userCountRet
             if userCountRet:
                 sel = Selector(text = data['msg'][1])
                 item['offset'] = response.meta['offset']

@@ -11,7 +11,7 @@ from leancloud import LeanCloudError
 from leancloud import Query
 from scrapy import log
 from scrapy.exceptions import DropItem
-from zhQuesInfo import settings
+from zhQuesFollower import settings
 import bmemcached
 import re
 
