@@ -17,8 +17,8 @@ import re
 
 import redis
 class FollowerPipeline(object):
-    dbPrime1 = 997
-    dbPrime2 = 97
+    dbPrime1 = 97
+    dbPrime2 = 101
 
     def __init__(self):
         leancloud.init(settings.APP_ID, master_key=settings.MASTER_KEY)
@@ -36,7 +36,7 @@ class FollowerPipeline(object):
             questionTimestamp = self.redis1.lindex(questionIdStr,2)
 
             tableIndex1 = int(questionTimestamp)%self.dbPrime1
-            tableIndex2 = tableIndex1%self.dbPrime2
+            tableIndex2 = int(questionTimestamp)%self.dbPrime2
             if tableIndex1 <10:
                 tableIndexStr1 = '0'+str(tableIndex1)
             else:
