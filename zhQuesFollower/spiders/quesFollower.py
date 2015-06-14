@@ -141,7 +141,6 @@ class QuesfollowerSpider(scrapy.Spider):
                     # print "request index: %s"  %str(index)
                     yield FormRequest(url =reqUrl,
                                               #headers = self.headers,
-                                              metadata={'offset':self.reqLimit*(index +1)},
                                               formdata={
                                                   '_xsrf':xsrfValue,
                                                   'start':'0',
