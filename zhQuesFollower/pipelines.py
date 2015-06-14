@@ -17,8 +17,8 @@ import re
 
 import redis
 class FollowerPipeline(object):
-    dbPrime1 = 97
-    dbPrime2 = 101
+    dbPrime1 = 997
+    dbPrime2 = 97
 
     def __init__(self):
         leancloud.init(settings.APP_ID, master_key=settings.MASTER_KEY)
@@ -36,7 +36,7 @@ class FollowerPipeline(object):
             questionTimestamp = self.redis1.lindex(questionIdStr,2)
 
             tableIndex1 = int(questionTimestamp)%self.dbPrime1
-            tableIndex2 = int(questionTimestamp)%self.dbPrime2
+            tableIndex2 = tableIndex1%self.dbPrime2
             if tableIndex1 <10:
                 tableIndexStr1 = '0'+str(tableIndex1)
             else:
@@ -62,7 +62,7 @@ class FollowerPipeline(object):
                     p3.execute()
 
                     p4 = self.redis4.pipeline()
-                    p4.rpush(userDataIdStr,userIndex,userLinkId,item['userImgUrlList'][index],item['userNameList'][index],
+                    p4.rpush(userDataIdStr,str(userIndex),str(userLinkId),item['userImgUrlList'][index],item['userNameList'][index],
                              item['userAnswerList'][index],item['userAskList'][index],item['userFollowersList'][index],
                              item['userUpList'][index])
                 else:
@@ -70,17 +70,17 @@ class FollowerPipeline(object):
                         self.redis3.hset('userDataId',userDataIdStr,userLinkId) #要不要记录用户的userLinkId更改时间这个信息
                     userIndex = self.redis3.hget('userDataIdIndex',userDataIdStr)
 
-                if self.redis5.sadd(str(questionIdStr),userIndex):
+                if self.redis5.sadd(str(questionIdStr),str(userIndex)):
                     self.redis5.incr('totalCount',1)
 
-                    QuestionFollower = Object.extend('QuestionFollower'+tableIndexStr)
+                    QuestionFollower = Object.extend('QuesFollow'+tableIndexStr)
                     questionFollower = QuestionFollower()
 
 
 
                     questionFollower.set('tableIndexStr',tableIndexStr)
                     questionFollower.set('questionId',questionIdStr)
-                    questionFollower.set('userIndex',userIndex)
+                    questionFollower.set('userIndex',str(userIndex))
                     questionFollower.set('userDataId',userDataIdStr)
                     questionFollower.set('userLinkId',userLinkId)
                     try:
