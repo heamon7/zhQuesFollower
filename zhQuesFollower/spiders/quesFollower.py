@@ -64,16 +64,24 @@ class QuesfollowerSpider(scrapy.Spider):
 
         for questionId in self.questionIdList:
             print "askfor followerCount %s"  %str(questionId)
-            self.questionFollowerCountList.append(redis2.lindex(str(questionId),4))
+            self.questionFollowerCountList.ex(redis2.lindex(str(questionId),4))
 
         # dbPrime = 97
         # totalCount = int(client_2.get('totalCount'))
         # for questionIndex in range(0,totalCount):
         #     self.questionIdSet.add(int(client_2.get(str(questionIndex))[0]))
-        # p2 = redis2.pipeline()    #貌似这样占用的内存太多了
-        # for questionId in self.questionIdList:
-        #     p2.lindex(str(questionId),4)
-        # self.questionFollowerCountList = p2.execute()
+
+            #貌似这样占用的内存太多了
+        p2 = redis2.pipeline()
+        for index ,questionId in enumerate(self.questionIdList):
+            p2.lindex(str(questionId),4)
+            if index%1000 ==0:
+                self.questionFollowerCountList.extend(p2.execute())
+                p2 = redis2.pipeline()
+                print "length of questionFollowerCountList: %s\n" %str(len(self.questionFollowerCountList))
+
+
+
 
 
             # if questionInfo:
