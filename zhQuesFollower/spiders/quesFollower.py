@@ -136,7 +136,7 @@ class QuesfollowerSpider(scrapy.Spider):
 
                 reqUrl = self.baseUrl+str(questionId)+'/followers'
 
-                reqTimes = (self.questionFollowerCountList[index]+self.reqLimit-1)/self.reqLimit
+                reqTimes = (int(self.questionFollowerCountList[index])+self.reqLimit-1)/self.reqLimit
                 for index in reversed(range(reqTimes)):
                     # print "request index: %s"  %str(index)
                     yield FormRequest(url =reqUrl,
