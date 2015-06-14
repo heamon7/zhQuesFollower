@@ -173,7 +173,7 @@ class QuesfollowerSpider(scrapy.Spider):
             # print "userCountRet: %s" %userCountRet
             if userCountRet:
                 sel = Selector(text = data['msg'][1])
-                item['offset'] = response.meta['offset']
+                #item['offset'] = response.meta['offset']
                 item['questionId'] = re.split('http://www.zhihu.com/question/(\d*)/followers',response.url)[1]
                 item['userDataIdList'] = sel.xpath('//button/@data-id').extract()
                 item['userLinkList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/@href').extract()
