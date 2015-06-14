@@ -75,7 +75,7 @@ class QuesfollowerSpider(scrapy.Spider):
         p2 = redis2.pipeline()
         for index ,questionId in enumerate(self.questionIdList):
             p2.lindex(str(questionId),4)
-            if index%1000 ==0:
+            if index%10000 ==0:
                 self.questionFollowerCountList.extend(p2.execute())
                 p2 = redis2.pipeline()
                 print "length of questionFollowerCountList: %s\n" %str(len(self.questionFollowerCountList))
