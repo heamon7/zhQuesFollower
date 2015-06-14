@@ -63,8 +63,8 @@ REDIS_USER = 'f57567e905c811e5'
 REDIS_PASSWORD = 'Zhihu777r'
 
 
-APP_ID = 'yo33rhnw86bh0hrdidq0ltibkxv0rsqr2tl9mecd8zvoqisd'
-MASTER_KEY = '4vto4xrk3p8dksaylvv9my7g5ekmgmyt5bp059l35vs1uccp'
+APP_ID = '6f72qbnhmko93jjnlspg2fhivs1shftog67gqlkfe6kqv3lb'
+MASTER_KEY = '53jugkhuvrbkgwkutnlflwiy55skhaxecau4teya0gc5b7f9'
 
 ITEM_PIPELINES = {
     'zhQuesFollower.pipelines.FollowerPipeline': 300,
