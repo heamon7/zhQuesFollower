@@ -143,7 +143,7 @@ class QuesfollowerSpider(scrapy.Spider):
 
 
         if response.status != 200:
-#            print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
+            print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
             yield Request(response.url,callback=self.parsePage)
         else:
 
@@ -158,6 +158,7 @@ class QuesfollowerSpider(scrapy.Spider):
            # inspect_response(response,self)
             data = json.loads(response.body)
             userCountRet = data['msg'][0]
+            print "userCountRet: %s" %userCountRet
             if userCountRet:
                 sel = Selector(text = data['msg'][1])
                 item['offset'] = response.meta['offset']
