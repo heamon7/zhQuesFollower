@@ -38,6 +38,7 @@ class QuesfollowerSpider(scrapy.Spider):
     quesIndex =0
     reqLimit =20
     threhold = 100
+    handle_httpstatus_list = [401,429,500]
     #handle_httpstatus_list = [401,429,500]
 
 
@@ -135,31 +136,38 @@ class QuesfollowerSpider(scrapy.Spider):
 
 
     def parsePage(self,response):
-        item =  ZhquesfollowerItem()
 
-#         if response.status != 200:
-# #            print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
-#             yield  self.make_requests_from_url(response.url)
-#
-#         else:
 
-        inspect_response(response,self)
-        data = json.loads(response.body)
-        userCountRet = data['msg'][0]
-        if userCountRet:
-            sel = Selector(text = data['msg'][1])
-            item['offset'] = response.meta['offset']
-            item['questionId'] = re.split('http://www.zhihu.com/question/(\d*)/followers',response.url)[1]
-            item['userDataIdList'] = sel.xpath('//button/@data-id').extract()
-            item['userLinkList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/@href').extract()
-            item['userImgUrlList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/img/@src').extract()
-            item['userNameList'] = sel.xpath('//h2/a/text()').extract()
-            item['userFollowersList'] = sel.xpath('//div[@class="details zg-gray"]/a[1]//text()').extract()
-            item['userAskList'] = sel.xpath('//div[@class="details zg-gray"]/a[2]//text()').extract()
-            item['userAnswerList'] = sel.xpath('//div[@class="details zg-gray"]/a[3]//text()').extract()
-            item['userUpList'] = sel.xpath('//div[@class="details zg-gray"]/a[4]//text()').extract()
+        if response.status != 200:
+#            print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
+            yield Request(response.url,callback=self.parsePage)
+        else:
 
-        yield item
+            item =  ZhquesfollowerItem()
+
+    #         if response.status != 200:
+    # #            print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
+    #             yield  self.make_requests_from_url(response.url)
+    #
+    #         else:
+
+            inspect_response(response,self)
+            data = json.loads(response.body)
+            userCountRet = data['msg'][0]
+            if userCountRet:
+                sel = Selector(text = data['msg'][1])
+                item['offset'] = response.meta['offset']
+                item['questionId'] = re.split('http://www.zhihu.com/question/(\d*)/followers',response.url)[1]
+                item['userDataIdList'] = sel.xpath('//button/@data-id').extract()
+                item['userLinkList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/@href').extract()
+                item['userImgUrlList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/img/@src').extract()
+                item['userNameList'] = sel.xpath('//h2/a/text()').extract()
+                item['userFollowersList'] = sel.xpath('//div[@class="details zg-gray"]/a[1]//text()').extract()
+                item['userAskList'] = sel.xpath('//div[@class="details zg-gray"]/a[2]//text()').extract()
+                item['userAnswerList'] = sel.xpath('//div[@class="details zg-gray"]/a[3]//text()').extract()
+                item['userUpList'] = sel.xpath('//div[@class="details zg-gray"]/a[4]//text()').extract()
+
+            yield item
 
 
 
