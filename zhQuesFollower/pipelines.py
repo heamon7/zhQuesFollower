@@ -31,12 +31,12 @@ class FollowerPipeline(object):
 
 #这里简单处理，不考虑关注者的前后顺序，处理为一个集合,每个关注在数据库里存为一条记录，在缓存里存为一个hash表
     def process_item(self, item, spider):
-        if item['questionId']:
+        if item['userDataIdList']:
             questionIdStr = str(item['questionId'])
             questionTimestamp = self.redis1.lindex(questionIdStr,2)
 
-            tableIndex1 = questionTimestamp%self.dbPrime1
-            tableIndex2 = questionTimestamp%self.dbPrime2
+            tableIndex1 = int(questionTimestamp)%self.dbPrime1
+            tableIndex2 = int(questionTimestamp)%self.dbPrime2
             if tableIndex1 <10:
                 tableIndexStr1 = '0'+str(tableIndex1)
             else:
