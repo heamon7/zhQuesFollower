@@ -51,7 +51,7 @@ class FollowerPipeline(object):
 
             for index , userDataId in enumerate(item['userDataIdList']):
                 userDataIdStr= str(item['userDataIdList'][index])
-                userLinkId = re.split('http://www.zhihu.com/people/',item['userLinkList'][index])[1]
+                userLinkId = re.split('/people/',item['userLinkList'][index])[1]
 
                 if self.redis3.hsetnx('userDataId',userDataIdStr,userLinkId):
                     userIndex = self.redis3.incr('totalCount',1)
