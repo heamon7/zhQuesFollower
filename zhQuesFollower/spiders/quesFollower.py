@@ -131,23 +131,25 @@ class QuesfollowerSpider(scrapy.Spider):
         #inspect_response(response,self)
         #self.urls = ['http://www.zhihu.com/question/28626263','http://www.zhihu.com/question/22921426','http://www.zhihu.com/question/20123112']
         for index ,questionId in enumerate(self.questionIdList):
-            xsrfValue = response.xpath('/html/body/input[@name= "_xsrf"]/@value').extract()[0]
-            reqUrl = self.baseUrl+str(questionId)+'/followers'
+            if self.questionFollowerCountList[index]:
+                xsrfValue = response.xpath('/html/body/input[@name= "_xsrf"]/@value').extract()[0]
 
-            reqTimes = (self.questionFollowerCountList[index]+self.reqLimit-1)/self.reqLimit
-            for index in reversed(range(reqTimes)):
-                # print "request index: %s"  %str(index)
-                yield FormRequest(url =reqUrl,
-                                          #headers = self.headers,
-                                          metadata={'offset':self.reqLimit*(index +1)},
-                                          formdata={
-                                              '_xsrf':xsrfValue,
-                                              'start':'0',
-                                              'offset':str(self.reqLimit*index),
-                                          },
-                                          dont_filter = True,
-                                          callback = self.parsePage
-                                          )
+                reqUrl = self.baseUrl+str(questionId)+'/followers'
+
+                reqTimes = (self.questionFollowerCountList[index]+self.reqLimit-1)/self.reqLimit
+                for index in reversed(range(reqTimes)):
+                    # print "request index: %s"  %str(index)
+                    yield FormRequest(url =reqUrl,
+                                              #headers = self.headers,
+                                              metadata={'offset':self.reqLimit*(index +1)},
+                                              formdata={
+                                                  '_xsrf':xsrfValue,
+                                                  'start':'0',
+                                                  'offset':str(self.reqLimit*index),
+                                              },
+                                              dont_filter = True,
+                                              callback = self.parsePage
+                                              )
 
 
     def parsePage(self,response):
