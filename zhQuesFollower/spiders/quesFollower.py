@@ -62,9 +62,9 @@ class QuesfollowerSpider(scrapy.Spider):
         dbPrime = 97
         self.questionIdList = redis0.hvals('questionIndex')
 
-        for questionId in self.questionIdList:
-            print "askfor followerCount %s"  %str(questionId)
-            self.questionFollowerCountList.ex(redis2.lindex(str(questionId),4))
+        # for questionId in self.questionIdList:
+        #     print "askfor followerCount %s"  %str(questionId)
+        #     self.questionFollowerCountList.ex(redis2.lindex(str(questionId),4))
 
         # dbPrime = 97
         # totalCount = int(client_2.get('totalCount'))
