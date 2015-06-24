@@ -56,7 +56,7 @@ class FollowerPipeline(object):
                     [recordTimestamp,userIndex]=('','')
                 # 表示数据库并没有该用户的信息
                 if not recordTimestamp:
-                    userIndex = self.redis3.get('totalCount',1)
+                    userIndex = self.redis3.incr('totalCount',1)
                     #这里有一点小问题，假设了下面的p3不会失败，一旦失败可能会有问题，原子性质
                     p3 = self.redis3.pipeline()
                     p3.hset('userIndex',str(userIndex),userDataIdStr)
