@@ -48,7 +48,7 @@ class QuesfollowerSpider(scrapy.Spider):
 
 
 
-    def __init__(self,stats):
+    def __init__(self,spider_type='Master',spider_number=0,partition=1,**kwargs):
 
         # self.stats = stats
         print "Initianizing ....."
@@ -189,7 +189,7 @@ class QuesfollowerSpider(scrapy.Spider):
                                           #headers = self.headers,
                                           formdata={
                                               '_xsrf':xsrfValue,
-                                              'email':self.eamil,
+                                              'email':self.email,
                                               'password':self.password,
                                               'rememberme': 'y'
                                           },
@@ -273,10 +273,12 @@ class QuesfollowerSpider(scrapy.Spider):
                 item['userLinkList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/@href').extract()
                 item['userImgUrlList'] = sel.xpath('//a[@class="zm-item-link-avatar"]/img/@src').extract()
                 item['userNameList'] = sel.xpath('//h2/a/text()').extract()
-                item['userFollowersList'] = sel.xpath('//div[@class="details zg-gray"]/a[1]//text()').extract()
-                item['userAskList'] = sel.xpath('//div[@class="details zg-gray"]/a[2]//text()').extract()
-                item['userAnswerList'] = sel.xpath('//div[@class="details zg-gray"]/a[3]//text()').extract()
-                item['userUpList'] = sel.xpath('//div[@class="details zg-gray"]/a[4]//text()').extract()
+                item['userFollowersList'] = sel.xpath('//div[@class="details zg-gray"]/a[1]//text()').re(r'(^\d+)')
+                item['userAskList'] = sel.xpath('//div[@class="details zg-gray"]/a[2]//text()').re(r'(^\d+)')
+                item['userAnswerList'] = sel.xpath('//div[@class="details zg-gray"]/a[3]//text()').re(r'(^\d+)')
+                item['userUpList'] = sel.xpath('//div[@class="details zg-gray"]/a[4]//text()').re(r'(^\d+)')
+            else:
+                item['userDataIdList']=''
 
             yield item
 
@@ -290,7 +292,7 @@ class QuesfollowerSpider(scrapy.Spider):
 
         redis5 = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_USER+':'+settings.REDIS_PASSWORD,db=5)
         connection = happybase.Connection(settings.HBASE_HOST)
-        questionTable = connection.table('question')
+        questionTable = connection.table('testquestion')
 
 
         # pipelineLimit = 1000
@@ -300,10 +302,10 @@ class QuesfollowerSpider(scrapy.Spider):
             p5.smembers(str(questionId))
             if index%self.pipelineLimit ==0:
                 for followerList in p5.execute():
-                    questionTable.put(str(questionId),{'follow:list':str(list(followerList))})
+                    questionTable.put(str(questionId),{'follower:list':str(list(followerList))})
             elif len(self.questionIdList)-index==1:
                 for followerList in p5.execute():
-                    questionTable.put(str(questionId),{'follow:list':str(list(followerList))})
+                    questionTable.put(str(questionId),{'follower:list':str(list(followerList))})
 
         log.msg('Finish All.....',level=log.WARNING)
 

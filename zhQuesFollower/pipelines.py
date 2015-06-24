@@ -48,8 +48,12 @@ class FollowerPipeline(object):
 
 
                 #通过查询dataId，判断是否记录过该用户信息
-                [recordTimestamp,userIndex] = self.redis4.lrange(str(userDataIdStr),0,1)
-
+                # [recordTimestamp,userIndex] = self.redis4.lrange(str(userDataIdStr),0,1)
+                result = self.redis4.lrange(str(userDataIdStr),0,1)
+                if result:
+                    [recordTimestamp,userIndex]=result
+                else:
+                    [recordTimestamp,userIndex]=('','')
                 # 表示数据库并没有该用户的信息
                 if not recordTimestamp:
                     userIndex = self.redis3.get('totalCount',1)
@@ -74,7 +78,7 @@ class FollowerPipeline(object):
                                        ,{'basic:dataId':str(userDataIdStr)
                                         ,'basic:linkId':str(userLinkId)
                                          ,'basic:imgUrl':str(item['userImgUrlList'][index])
-                                         ,'basic:name':str(item['userNameList'][index])
+                                         ,'basic:name':item['userNameList'][index].encode('utf-8')
                                          ,'basic:answerCount':str(item['userAnswerList'][index])
                                          ,'basic:askCount':str(item['userAskList'][index])
                                          ,'basic:followerCount':str(item['userFollowersList'][index])

@@ -62,6 +62,11 @@ REDIS_PORT = '6379'
 REDIS_USER = 'f57567e905c811e5'
 REDIS_PASSWORD = 'Zhihu777r'
 
+
+EXTENSIONS = {
+    'scrapy.contrib.feedexport.FeedExporter': None,
+}
+
 HBASE_HOST='localhost'
 
 
