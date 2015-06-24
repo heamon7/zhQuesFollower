@@ -24,6 +24,8 @@ import re
 
 import json
 import redis
+import happybase
+import requests
 
 class QuesfollowerSpider(scrapy.Spider):
     name = "quesFollower"
@@ -39,7 +41,7 @@ class QuesfollowerSpider(scrapy.Spider):
     reqLimit =20
     pipelineLimit = 100000
     threhold = 100
-    handle_httpstatus_list = [401,429,500]
+    handle_httpstatus_list = [401,429,500,502,504]
     #handle_httpstatus_list = [401,429,500]
 
 
@@ -48,8 +50,16 @@ class QuesfollowerSpider(scrapy.Spider):
 
     def __init__(self,stats):
 
-        self.stats = stats
+        # self.stats = stats
         print "Initianizing ....."
+        self.redis0 = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_USER+':'+settings.REDIS_PASSWORD,db=0)
+        self.redis2 = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_USER+':'+settings.REDIS_PASSWORD,db=2)
+        self.spider_type = str(spider_type)
+        self.spider_number = int(spider_number)
+        self.partition = int(partition)
+        self.email= settings.EMAIL_LIST[self.spider_number]
+        self.password=settings.PASSWORD_LIST[self.spider_number]
+
         #log.start()
         # leancloud.init(settings.APP_ID_S, master_key=settings.MASTER_KEY_S)
 
@@ -58,10 +68,9 @@ class QuesfollowerSpider(scrapy.Spider):
         # client_4 = bmemcached.Client(settings.CACHE_SERVER_4,settings.CACHE_USER_4,settings.CACHE_PASSWORD_4)
         #
 
-        redis0 = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_USER+':'+settings.REDIS_PASSWORD,db=0)
-        redis2 = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_USER+':'+settings.REDIS_PASSWORD,db=2)
-        dbPrime = 97
-        self.questionIdList = redis0.hvals('questionIndex')
+
+        # dbPrime = 97
+
 
         # for questionId in self.questionIdList:
         #     print "askfor followerCount %s"  %str(questionId)
@@ -73,12 +82,9 @@ class QuesfollowerSpider(scrapy.Spider):
         #     self.questionIdSet.add(int(client_2.get(str(questionIndex))[0]))
 
             #貌似这样占用的内存太多了
-        p2 = redis2.pipeline()
-        for index ,questionId in enumerate(self.questionIdList):
-            p2.lindex(str(questionId),4)
-            if index%self.pipelineLimit ==0:
-                self.questionFollowerCountList.extend(p2.execute())
-                p2 = redis2.pipeline()
+        #这里要获得问题的id及其关注者的数量
+        #因为不能一次获得所有的列表，所以需要分次
+
                 # print "length of questionFollowerCountList: %s\n" %str(len(self.questionFollowerCountList))
 
 
@@ -97,23 +103,94 @@ class QuesfollowerSpider(scrapy.Spider):
         # self.questionInfoList.append([20769127,838])
 
 
-    @classmethod
-    def from_crawler(cls, crawler):
-        return cls(crawler.stats)
+    # @classmethod
+    # def from_crawler(cls, crawler):
+    #     return cls(crawler.stats)
 
     def start_requests(self):
-        print "start_requests ing ......"
+
+        self.questionIdList = self.redis2.keys()
+
+        p2 = self.redis2.pipeline()
+
+
+        # self.questionIdList = self.redis0.hvals('questionIndex')
+        questionIdListLength = len(self.questionIdList)
+
+        if self.spider_type=='Master':
+            log.msg('Master spider_type is '+self.spider_type,level=log.WARNING)
+            if self.partition!=1:
+                log.msg('Master non 1 partition is '+str(self.partition),level=log.WARNING)
+                self.questionIdList = self.questionIdList[self.spider_number*questionIdListLength/self.partition:(self.spider_number+1)*questionIdListLength/self.partition]
+
+                for index ,questionId in enumerate(self.questionIdList):
+                    p2.lindex(str(questionId),6)
+                    if index%self.pipelineLimit ==0:
+                        self.questionFollowerCountList.extend(p2.execute())
+                    elif questionIdListLength-index==1:
+                        self.questionFollowerCountList.extend(p2.execute())                        
+                    # p2 = self.redis2.pipeline()
+
+                for index in range(1,self.partition):
+                    payload ={
+                        'project':settings.BOT_NAME
+                        ,'spider':self.name
+                        ,'spider_type':'Slave'
+                        ,'spider_number':index
+                        ,'partition':self.partition
+                        ,'setting':'JOBDIR=/tmp/scrapy/'+self.name+str(index)
+                    }
+                    log.msg('Begin to request'+str(index),level=log.WARNING)
+                    response = requests.post('http://'+settings.SCRAPYD_HOST_LIST[self.spider_number]+':'+settings.SCRAPYD_PORT+'/schedule.json',data=payload)
+                    log.msg('Response: '+str(index)+' '+str(response),level=log.WARNING)
+            else:
+                log.msg('Master  partition is '+str(self.partition),level=log.WARNING)
+                for index ,questionId in enumerate(self.questionIdList):
+                    p2.lindex(str(questionId),6)
+                    if index%self.pipelineLimit ==0:
+                        self.questionFollowerCountList.extend(p2.execute())
+                    elif questionIdListLength-index==1:
+                        self.questionFollowerCountList.extend(p2.execute())
+
+        elif self.spider_type =='Slave':
+            log.msg('Slave spider_type is '+self.spider_type,level=log.WARNING)
+            log.msg('Slave number is '+str(self.spider_number) + ' partition is '+str(self.partition),level=log.WARNING)
+            if (self.partition-self.spider_number)!=1:
+                self.questionIdList = self.questionIdList[self.spider_number*questionIdListLength/self.partition:(self.spider_number+1)*questionIdListLength/self.partition]
+
+                for index ,questionId in enumerate(self.questionIdList):
+                    p2.lindex(str(questionId),6)
+                    if index%self.pipelineLimit ==0:
+                        self.questionFollowerCountList.extend(p2.execute())
+                    elif questionIdListLength-index==1:
+                        self.questionFollowerCountList.extend(p2.execute())
+                    # p2 = self.redis2.pipeline()
+
+            else:
+                self.questionIdList = self.questionIdList[self.spider_number*questionIdListLength/self.partition:]
+                for index ,questionId in enumerate(self.questionIdList):
+                    p2.lindex(str(questionId),6)
+                    if index%self.pipelineLimit ==0:
+                        self.questionFollowerCountList.extend(p2.execute())
+                    elif questionIdListLength-index==1:
+                        self.questionFollowerCountList.extend(p2.execute())
+                    # p2 = self.redis2.pipeline()
+        else:
+            log.msg('spider_type is:'+str(self.spider_type)+'with type of '+str(type(self.spider_type)),level=log.ERROR)
+
+        log.msg('start_requests ing ......',level=log.WARNING)
         yield Request("http://www.zhihu.com/",callback = self.post_login)
 
     def post_login(self,response):
-        print "post_login ing ......"
+
+        log.msg('post_login ing ......',level=log.WARNING)
         xsrfValue = response.xpath('/html/body/input[@name= "_xsrf"]/@value').extract()[0]
         yield FormRequest.from_response(response,
                                           #headers = self.headers,
                                           formdata={
                                               '_xsrf':xsrfValue,
-                                              'email':'heamon8@163.com',
-                                              'password':'heamon8@()',
+                                              'email':self.eamil,
+                                              'password':self.password,
                                               'rememberme': 'y'
                                           },
                                           dont_filter = True,
@@ -125,8 +202,9 @@ class QuesfollowerSpider(scrapy.Spider):
 
 
     def after_login(self,response):
-        print "after_login ing ....."
-        print self.questionInfoList
+
+        log.msg('after_login ing .....',level=log.WARNING)
+        # print self.questionInfoList
         #inspect_response(response,self)
         #inspect_response(response,self)
         #self.urls = ['http://www.zhihu.com/question/28626263','http://www.zhihu.com/question/22921426','http://www.zhihu.com/question/20123112']
@@ -139,16 +217,19 @@ class QuesfollowerSpider(scrapy.Spider):
                 reqTimes = (int(self.questionFollowerCountList[index])+self.reqLimit-1)/self.reqLimit
                 for index in reversed(range(reqTimes)):
                     # print "request index: %s"  %str(index)
-                    yield FormRequest(url =reqUrl,
+                    offset =str(self.reqLimit*index)
+                    yield FormRequest(url =reqUrl
+                                      ,meta={'xsrfValue':xsrfValue,'offset':str(offset)}
                                               #headers = self.headers,
-                                              formdata={
-                                                  '_xsrf':xsrfValue,
-                                                  'start':'0',
-                                                  'offset':str(self.reqLimit*index),
-                                              },
-                                              dont_filter = True,
-                                              callback = self.parsePage
-                                              )
+
+                                      , formdata={
+                                            '_xsrf': xsrfValue,
+                                            'start': '0',
+                                            'offset': str(offset),
+                                        }
+                                      ,dont_filter=True
+                                      ,callback=self.parsePage
+                                      )
 
 
     def parsePage(self,response):
@@ -156,7 +237,19 @@ class QuesfollowerSpider(scrapy.Spider):
 
         if response.status != 200:
             # print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
-            yield Request(response.url,callback=self.parsePage)
+            # print "ParsePage HTTPStatusCode: %s Retrying !" %str(response.status)
+            yield FormRequest(url =response.request.url
+                                      ,meta={'xsrfValue':response.meta['xsrfValue'],'offset':response.meta['offset']}
+                                              #headers = self.headers,
+
+                                      , formdata={
+                                            '_xsrf': response.meta['xsrfValue'],
+                                            'start': '0',
+                                            'offset':str(response.meta['offset']),
+                                        }
+                                      ,dont_filter=True
+                                      ,callback=self.parsePage
+                                      )
         else:
 
             item =  ZhquesfollowerItem()
@@ -171,6 +264,7 @@ class QuesfollowerSpider(scrapy.Spider):
             data = json.loads(response.body)
             userCountRet = data['msg'][0]
             # print "userCountRet: %s" %userCountRet
+            #这里注意要处理含有匿名用户的情况
             if userCountRet:
                 sel = Selector(text = data['msg'][1])
                 #item['offset'] = response.meta['offset']
@@ -190,23 +284,43 @@ class QuesfollowerSpider(scrapy.Spider):
 
 
 
-
-
+    #
+    #
     def closed(self,reason):
-        #f = open('../../nohup.out')
-        #print f.read()
-        leancloud.init(settings.APP_ID, master_key=settings.MASTER_KEY)
+
+        redis5 = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_USER+':'+settings.REDIS_PASSWORD,db=5)
+        connection = happybase.Connection(settings.HBASE_HOST)
+        questionTable = connection.table('question')
 
 
-        CrawlerLog = Object.extend('CrawlerLog')
-        crawlerLog = CrawlerLog()
+        # pipelineLimit = 1000
 
-        crawlerLog.set('crawlerName',self.name)
-        crawlerLog.set('closedReason',reason)
-        crawlerLog.set('crawlerStats',self.stats.get_stats())
-        try:
-            crawlerLog.save()
-        except:
-            pass
+        p5 = redis5.pipeline()
+        for index ,questionId in enumerate(self.questionIdList):
+            p5.smembers(str(questionId))
+            if index%self.pipelineLimit ==0:
+                for followerList in p5.execute():
+                    questionTable.put(str(questionId),{'follow:list':str(list(followerList))})
+            elif len(self.questionIdList)-index==1:
+                for followerList in p5.execute():
+                    questionTable.put(str(questionId),{'follow:list':str(list(followerList))})
+
+        log.msg('Finish All.....',level=log.WARNING)
+
+                    #     #f = open('../../nohup.out')
+    #     #print f.read()
+    #     leancloud.init(settings.APP_ID, master_key=settings.MASTER_KEY)
+    #
+    #
+    #     CrawlerLog = Object.extend('CrawlerLog')
+    #     crawlerLog = CrawlerLog()
+    #
+    #     crawlerLog.set('crawlerName',self.name)
+    #     crawlerLog.set('closedReason',reason)
+    #     crawlerLog.set('crawlerStats',self.stats.get_stats())
+    #     try:
+    #         crawlerLog.save()
+    #     except:
+    #         pass
 
 
